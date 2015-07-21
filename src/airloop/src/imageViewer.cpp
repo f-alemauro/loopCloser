@@ -35,15 +35,13 @@ void loopProcessing(const std_msgs::Int32MultiArray::ConstPtr& imgs){
 	Mat img_current;
 	for(std::vector<int>::const_iterator it = imgs->data.begin(); it != imgs->data.end(); ++it)
 	{
-		//std::cout<<"Eccomi"<<std::endl;
-		//std::cout<<*it<<std::endl;
-        string img_path = (*(imageNames.begin()+*(it))).string();
+     string img_path = (*(imageNames.begin()+*(it))).string();
 
         img_current = imread(img_path);
         images.push_back(img_current);
 	}
-	std::cout<<"Showing "<<images.size()<<std::endl;
-	cvShowManyImages("Temp", images);
+	ROS_INFO("A new loop closure has been detected!");
+	cvShowManyImages("Loop closure!", images);
 	images.clear();
 }
 
@@ -65,8 +63,6 @@ bool cvShowManyImages(char const* title, vector<Mat> images) {
 		return false;
 	}
 	DispImage = cvCreateImage(cvSize(100 + subImageSize*w, 60 + subImageSize*h),8,3);
-	//va_list args;
-	//va_start(args, nArgs);
 	for (i = 0, m = 20, n = 20; i < images.size(); i++, m += (20 + subImageSize)) {
 		img = images[i];
 		if(img.empty()) {
@@ -87,8 +83,8 @@ bool cvShowManyImages(char const* title, vector<Mat> images) {
 	}
 	namedWindow(title, 1);
 	imshow(title,DispImage);
-	waitKey(20);
-	//va_end(args);
+	waitKey(0);
+
 	return true;
 }
 
