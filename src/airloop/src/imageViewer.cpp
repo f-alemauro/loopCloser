@@ -32,20 +32,23 @@ int get_all(const path& root, const string& ext, vector<path>& ret)
 }
 
 void loopProcessing(const std_msgs::Int32MultiArray::ConstPtr& imgs){
-	//Mat img_current;
+	Mat img_current;
 	for(std::vector<int>::const_iterator it = imgs->data.begin(); it != imgs->data.end(); ++it)
 	{
 		//std::cout<<"Eccomi"<<std::endl;
 		//std::cout<<*it<<std::endl;
         string img_path = (*(imageNames.begin()+*(it))).string();
-        std::cout << img_path<< std::endl;
-        //img_current = imread(img_path.c_str());
+
+        img_current = imread(img_path);
+        images.push_back(img_current);
 	}
-	//images.push_back(img_current);
+	std::cout<<"Showing "<<images.size()<<std::endl;
+	cvShowManyImages("Temp", images);
+	images.clear();
 }
 
 bool cvShowManyImages(char const* title, vector<Mat> images) {
-	Mat* img;
+	Mat img;
 	Mat DispImage;
 	int subImageSize = 200;
 	int i,m,n;
@@ -65,13 +68,13 @@ bool cvShowManyImages(char const* title, vector<Mat> images) {
 	//va_list args;
 	//va_start(args, nArgs);
 	for (i = 0, m = 20, n = 20; i < images.size(); i++, m += (20 + subImageSize)) {
-		//img = images[i];
-		if(img->empty()) {
+		img = images[i];
+		if(img.empty()) {
 			ROS_ERROR("Invalid image!");
 			return false;
 		}
-		imgCols = img->cols;
-		imgRows = img->rows;
+		imgCols = img.cols;
+		imgRows = img.rows;
 		max = (imgCols > imgRows)? imgCols: imgRows;
 		scale = (float) ( (float) max / subImageSize );
 		if( i % w == 0 && m!= 20) {
@@ -80,11 +83,11 @@ bool cvShowManyImages(char const* title, vector<Mat> images) {
 		}
 		Rect roi(m, n, (int)(imgCols/scale), (int)(imgRows/scale));
 		Mat image_roi = DispImage(roi);
-		resize(*img, image_roi, image_roi.size(), 0, 0,0);
+		resize(img, image_roi, image_roi.size(), 0, 0,0);
 	}
 	namedWindow(title, 1);
 	imshow(title,DispImage);
-	waitKey(1);
+	waitKey(20);
 	//va_end(args);
 	return true;
 }
