@@ -105,6 +105,7 @@ include_directories(
 ## Declare a cpp executable
  add_executable(fileReader src/fileReader.cpp)
  add_executable(imageViewer src/imageViewer.cpp)
+ add_executable(odometry src/odometry.cpp)
  add_executable(generateVocab src/generateVocab.cpp src/Vocabulary.cpp)
  add_executable(loopClosure src/loopClosure.cpp src/Vocabulary.cpp src/Loop_Closer.cpp)
  	
@@ -117,6 +118,7 @@ include_directories(
  target_link_libraries(imageViewer ${catkin_LIBRARIES} )
  target_link_libraries(generateVocab ${catkin_LIBRARIES} )
  target_link_libraries(loopClosure ${catkin_LIBRARIES} )
+ target_link_libraries(odometry ${catkin_LIBRARIES} )
 
 #############
 ## Install ##

@@ -5,6 +5,7 @@
 #include "boost/filesystem.hpp"
 #include <sensor_msgs/image_encodings.h>
 #include <std_msgs/Int32MultiArray.h>
+#include <std_msgs/Int8.h>
 
 const int defaultNolcWith = 50;
 const float defaultProbabThreshold = 0.3;
@@ -25,7 +26,13 @@ int lc;
 
 using namespace boost::filesystem;
 using namespace cv;
-void imageProcessing(const sensor_msgs::ImageConstPtr& msg, flann::GenericIndex<cv::flann::L2<float> > &flannIndObj){//
+
+void odomProcessing(const std_msgs::Int8 msg){
+	ROS_INFO("YEEEEE: %d",msg.data);
+}
+
+
+void imageProcessing(const sensor_msgs::ImageConstPtr& msg, flann::GenericIndex<cv::flann::L2<float> > &flannIndObj){
 	std::vector<std::vector<float> > lc;
 	std_msgs::Int32MultiArray imgs;
 	ROS_INFO("New image found!");
@@ -51,8 +58,12 @@ void imageProcessing(const sensor_msgs::ImageConstPtr& msg, flann::GenericIndex<
 		imgs.data.push_back(lc[i][0]);
 		imgs.data.push_back(lc[i][1]);
 	}
-	if(lc.size()!=0)
+	if(lc.size()!=0 && ros::ok() && img_pub.getNumSubscribers()>0)
 		img_pub.publish(imgs);
+	else if (img_pub.getNumSubscribers()==0)
+		ROS_ERROR("No active subscriber for loopClosing!");
+	else if(!ros::ok())
+		ROS_ERROR("Error in ROS");
 }
 
 int main(int argc, char **argv)
@@ -107,6 +118,7 @@ int main(int argc, char **argv)
 
 	ros::NodeHandle n;
 	ros::Subscriber img_sub = n.subscribe<sensor_msgs::Image>("/images", 100, boost::bind(imageProcessing, _1, boost::ref(FlannObj)));
+	ros::Subscriber odom_sub = n.subscribe<std_msgs::Int8>("/odom", 100, odomProcessing);
 	img_pub = n.advertise<std_msgs::Int32MultiArray>("/loopClosures", 100);
 	ros::spin();
 	return 0;

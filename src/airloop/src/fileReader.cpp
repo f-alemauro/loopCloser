@@ -73,7 +73,7 @@ int main(int argc, char **argv)
 		while(img_pub.getNumSubscribers()<1)
 			ROS_INFO("Waiting for subscribers...");
 
-		for(iter = imageNames.begin(); iter!= imageNames.end();++iter){
+		for(iter = imageNames.begin(); iter!= imageNames.end()&& ok() && img_pub.getNumSubscribers()>0;++iter){
 			cout<< iter->generic_string()<<endl;
 			cv_image.image = imread(iter->generic_string(),CV_LOAD_IMAGE_COLOR);
 			cv_image.encoding = "bgr8";
@@ -85,6 +85,14 @@ int main(int argc, char **argv)
 			img_pub.publish(ros_image);
 			spinOnce();
 			loop_rate.sleep();
+		}
+		if (img_pub.getNumSubscribers()==0){
+			ROS_ERROR("No more subscriber! Quitting!");
+			return 0;
+		}
+		else if(!ok()){
+			ROS_ERROR("Error in ROS! Qutting!");
+			return -1;
 		}
 	}
 	else{
