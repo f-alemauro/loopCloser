@@ -1,6 +1,7 @@
 #include "ros/ros.h"
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
+#include <cv_bridge/cv_bridge.h>
 #include <std_msgs/Int32MultiArray.h>
 #include "boost/filesystem.hpp"
 #include <boost/foreach.hpp>
@@ -12,6 +13,25 @@ vector<path> imageNames;
 vector<Mat> images;
 
 bool cvShowManyImages(char const* title, vector<Mat> images);
+
+
+void imageProcessing(const sensor_msgs::ImageConstPtr& msg){
+	cv_bridge::CvImagePtr cv_ptr;
+	try
+	{
+		cv_ptr = cv_bridge::toCvCopy(msg);
+	}
+	catch (cv_bridge::Exception& e)
+	{
+		ROS_ERROR("Error in converting image to openCV format: %s",e.what());
+		return;
+
+	}
+    images.push_back(cv_ptr->image);
+	cvShowManyImages("Loop closure!", images);
+	images.clear();
+}
+
 
 int get_all(const path& root, const string& ext, vector<path>& ret)
 {
@@ -33,7 +53,7 @@ int get_all(const path& root, const string& ext, vector<path>& ret)
 
 void loopProcessing(const std_msgs::Int32MultiArray::ConstPtr& imgs){
 	Mat img_current;
-	for(std::vector<int>::const_iterator it = imgs->data.begin(); it != imgs->data.end(); ++it)
+	for(std::vector<int>::const_iterator it = imgs->data.begin()+1; it != imgs->data.end(); ++it)
 	{
      string img_path = (*(imageNames.begin()+*(it))).string();
 
@@ -41,8 +61,8 @@ void loopProcessing(const std_msgs::Int32MultiArray::ConstPtr& imgs){
         images.push_back(img_current);
 	}
 	ROS_INFO("A new loop closure has been detected!");
-	cvShowManyImages("Loop closure!", images);
-	images.clear();
+	//cvShowManyImages("Loop closure!", images);
+	//images.clear();
 }
 
 bool cvShowManyImages(char const* title, vector<Mat> images) {
@@ -83,7 +103,10 @@ bool cvShowManyImages(char const* title, vector<Mat> images) {
 	}
 	namedWindow(title, 1);
 	imshow(title,DispImage);
-	waitKey(0);
+	if(images.size()==1)
+		waitKey(10);
+	else
+		waitKey(0);
 
 	return true;
 }
@@ -97,9 +120,9 @@ int main(int argc, char **argv)
 
 	ros::init(argc, argv, "imageViewer");
 	ros::NodeHandle n;
+	ros::Subscriber img_sub = n.subscribe<sensor_msgs::Image>("/images", 100, imageProcessing);
 	ros::Subscriber loop_sub = n.subscribe<std_msgs::Int32MultiArray>("/loopClosures",100, loopProcessing);
 	ros::spin();
-//  cvShowManyImages("Images",2,&cv_image,&cv_image1);
   	return 0;
 }
 
