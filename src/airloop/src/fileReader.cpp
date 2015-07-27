@@ -3,6 +3,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include "boost/filesystem.hpp"
 #include <boost/foreach.hpp>
+#include <fstream>
 
 using namespace boost::filesystem;
 using namespace std;
@@ -52,6 +53,12 @@ int main(int argc, char **argv)
 	}
 	else
 		loopRate = atoi(argv[3]);
+
+
+	ofstream myfile;
+	myfile.open ("outData/param/fileReader.txt");
+	myfile << argv[0]<<" "<< argv[1] << " " << argv[2] << " " << loopRate;
+	myfile.close();
 
 	ros::init(argc, argv, "fileReader");
 	NodeHandle n;

@@ -29,6 +29,10 @@ int main(int argc, char **argv)
 		truncateFirst= atof(argv[8]);
 		truncateLast= atof(argv[9]);
 	}
+	ofstream myfile;
+	myfile.open ("outData/param/generateVocab.txt");
+	myfile << argv[0]<<" "<< detectorType << " " << descriptorTpye << " "<<clusteringMethod << " "<<datasetDirectory <<" "<< fileExtension <<" "<< numberOfWords <<" "<< truncate <<" "<< truncateFirst <<" "<< truncateLast;
+	myfile.close();
 
 	Vocabulary VocabSet;
 	try{

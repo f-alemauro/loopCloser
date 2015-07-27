@@ -109,8 +109,7 @@ int main(int argc, char **argv)
 	ROS_INFO("Init loopClosure node...");
 
 	ofstream myfile;
-	myfile.open ("outData/loopClosure_params.txt");
-
+	myfile.open ("outData/param/loopClosure.txt");
 	myfile << argv[0]<<" "<< VocabularyAddress << " " << NOLC_WITH << " "<<PROBAB_THRESH << " "<<N_NEIGH <<" "<< GEOM_THRESH;
 	myfile.close();
 

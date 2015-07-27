@@ -4,5 +4,5 @@
 	2a. what kind of data to publish to "/loop"? Number? Image? What if images comes from camera?
 3. create a DB.
 	3a. DB for what? storing images? storing closures? storing images as features?
-4. save parameter of call to function to file (loopClosure, generateVocab, fileReader 
+4. save parameter of call to function to file (loopClosure, generateVocab, fileReader) - OK
 	

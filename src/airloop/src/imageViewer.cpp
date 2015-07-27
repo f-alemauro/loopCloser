@@ -5,9 +5,11 @@
 #include <std_msgs/Int32MultiArray.h>
 #include "boost/filesystem.hpp"
 #include <boost/foreach.hpp>
+#include <fstream>
 
 using namespace cv;
 using namespace boost::filesystem;
+
 
 vector<path> imageNames;
 vector<Mat> images;
@@ -114,9 +116,27 @@ bool cvShowManyImages(char const* title, vector<Mat> images) {
 
 int main(int argc, char **argv)
 {
-
+	if(argc != 3){
+		ROS_ERROR("Improper use of function parameters!");
+		ROS_ERROR("Usage: ./imageViewer directory fileExtension");
+		return -1;
+	}
 	int result = get_all(argv[1], argv[2], imageNames);
+	if( result == -1){
+		ROS_ERROR("Non existing directory!");
+		return -1;
+	}
+	else if (result == 0){
+		ROS_ERROR("Empty directory!");
+		return -1;
+	}
+
 	sort(imageNames.begin(),imageNames.end());
+
+	std::ofstream myfile;
+	myfile.open("outData/param/imageViewer.txt");
+	myfile << argv[0]<<" "<< argv[1] << " " << argv[2];
+	myfile.close();
 
 	ros::init(argc, argv, "imageViewer");
 	ros::NodeHandle n;
