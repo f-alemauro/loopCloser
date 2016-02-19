@@ -1,4 +1,5 @@
 #include "ros/ros.h"
+#include "std_msgs/Time.h"
 #include <cv_bridge/cv_bridge.h>
 #include <opencv2/highgui/highgui.hpp>
 #include "boost/filesystem.hpp"
@@ -9,6 +10,8 @@ using namespace boost::filesystem;
 using namespace std;
 using namespace cv;
 using namespace ros;
+
+ros::Time ts;
 
 int get_all(const path& root, const string& ext, vector<path>& ret)
 {
@@ -21,7 +24,6 @@ int get_all(const path& root, const string& ext, vector<path>& ret)
 	{
 		if(is_regular_file(*it) && it->path().extension() == ext){
 			count++;
-			cout<<it->path()<<endl;
 			ret.push_back(it->path());
 		}
 		++it;
@@ -29,6 +31,9 @@ int get_all(const path& root, const string& ext, vector<path>& ret)
 	return count;
 }
 
+void newTs(const std_msgs::Time time){
+	ts = time.data;
+}
 
 int main(int argc, char **argv)
 {
@@ -56,14 +61,16 @@ int main(int argc, char **argv)
 
 
 	ofstream myfile;
-	myfile.open ("outData/param/fileReader.txt");
-	myfile << argv[0]<<" "<< argv[1] << " " << argv[2] << " " << loopRate;
+	myfile.open ("outData/param/fileReader.txt",std::ofstream::app);
+	for (int i = 0; i< argc;i++)
+		myfile << argv[i]<<" ";
+	myfile<<"\n";
 	myfile.close();
 
 	ros::init(argc, argv, "fileReader");
 	NodeHandle n;
 	Publisher img_pub = n.advertise<sensor_msgs::Image>("/images", 100);
-	cout<<img_pub <<endl;
+	Subscriber ts_sub = n.subscribe<std_msgs::Time>("timeStamp", 1, newTs);
 	if(img_pub){
 		Rate loop_rate(loopRate);
 		int result = get_all(argv[1], argv[2], imageNames);
@@ -77,18 +84,15 @@ int main(int argc, char **argv)
 		}
 		sort(imageNames.begin(),imageNames.end());
 
-		while(img_pub.getNumSubscribers()<1)
+		while(img_pub.getNumSubscribers()<1 && ok())
 			ROS_INFO("Waiting for subscribers...");
 
 		for(iter = imageNames.begin(); iter!= imageNames.end()&& ok() && img_pub.getNumSubscribers()>0;++iter){
 			cout<< iter->generic_string()<<endl;
 			cv_image.image = imread(iter->generic_string(),CV_LOAD_IMAGE_COLOR);
 			cv_image.encoding = "bgr8";
-			if(cv_image.image.empty())
-				cout<<"Empty image"<<endl;
-			else
-				cout<<"Image Ok"<<endl;
 			cv_image.toImageMsg(ros_image);
+			ros_image.header.stamp = ts;
 			img_pub.publish(ros_image);
 			spinOnce();
 			loop_rate.sleep();
@@ -98,7 +102,7 @@ int main(int argc, char **argv)
 			return 0;
 		}
 		else if(!ok()){
-			ROS_ERROR("Error in ROS! Qutting!");
+			ROS_ERROR("Error in ROS! Quitting!");
 			return -1;
 		}
 	}

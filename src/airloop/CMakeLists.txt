@@ -108,6 +108,7 @@ include_directories(
  add_executable(odometry src/odometry.cpp)
  add_executable(generateVocab src/generateVocab.cpp src/Vocabulary.cpp)
  add_executable(loopClosure src/loopClosure.cpp src/Vocabulary.cpp src/Loop_Closer.cpp)
+ add_executable(timeStamp src/timeStamp.cpp)
  	
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
@@ -115,6 +116,7 @@ include_directories(
 
 ## Specify libraries to link a library or executable target against
  target_link_libraries(fileReader ${catkin_LIBRARIES} )
+ target_link_libraries(timeStamp ${catkin_LIBRARIES} )
  target_link_libraries(imageViewer ${catkin_LIBRARIES} )
  target_link_libraries(generateVocab ${catkin_LIBRARIES} )
  target_link_libraries(loopClosure ${catkin_LIBRARIES} )

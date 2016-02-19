@@ -149,8 +149,9 @@ unsigned long Vocabulary::clusterDescriptors(const string &method,const int &num
 		}
 		clCenters.~Mat();
 	}
-	string vocabSavePath(outputFolder+outdata+"vocabulary.out");
 	GreatMatrix.~Mat();
+	/*string vocabSavePath(outputFolder+outdata+"vocabulary.out");
+
 	ofstream print_to_file;
 	print_to_file.open(vocabSavePath.c_str());
 	if (!print_to_file) {
@@ -171,7 +172,8 @@ unsigned long Vocabulary::clusterDescriptors(const string &method,const int &num
 		print_to_file<<*iter_mat<<" "<<flush;
 		++new_line;
 	}
-	print_to_file.close();
+	print_to_file.close();*/
+	saveVocab(ClusterCenters, outputFolder+outdata+"vocabulary.out");
 	return ClusterCenters.rows;
 }
 
@@ -345,7 +347,7 @@ void Vocabulary::truncateVocabulary(const float upperLimit, const float lowerLim
 			++old_temp;
 		}
 	}
-	String vocabSavePath(outputFolder+outdata+"vocabulary.out");
+	/*String vocabSavePath(outputFolder+outdata+"vocabulary.out");
 	ofstream print_to_file;
 	print_to_file.open(vocabSavePath.c_str());
 	if (!print_to_file) {
@@ -366,7 +368,8 @@ void Vocabulary::truncateVocabulary(const float upperLimit, const float lowerLim
 		print_to_file<<*iter_mat<<" "<<flush;
 		++new_line;
 	}
-	print_to_file.close();
+	print_to_file.close();*/
+	saveVocab(newVocab, outputFolder+outdata+"vocabulary.out");
 	newVocab.~Mat();
 }
 
@@ -417,59 +420,59 @@ void Vocabulary::readFabMapDict(const string &tDictionary){
 		rdInvIndex.close();
 		cout<<"Dictionary read with "<<ClusterCenters.rows<<" words"<<endl;
 	}
-	catch(runtime_error err) {
+	catch(runtime_error& err) {
 		cout<<" !error: "<<err.what()<<" "<<tDictionary<<" found"<<endl;
 		return;
 	}
 }
 
 unsigned long Vocabulary::readDict(const string &tDictionary) throw (runtime_error){
-		ifstream reader(tDictionary.c_str());
-		if(!reader){
-			throw runtime_error("Dictionary file not found");
-		}
-		string dataLine, temp;
-		stringstream convert;
-		int total_n_words;
-		getline(reader, dataLine);
-		convert<<dataLine;
-		convert>>temp>>FeatureDetectorType;
-		convert.clear();
-		getline(reader, dataLine);
-		convert<<dataLine;
-		convert>>temp>>DescriptorExtractorType;
-		convert.clear();
-		getline(reader, dataLine);
-		for(string::size_type i=0; i!=dataLine.size();++i){
-			if(isdigit(dataLine[i]))  convert<<dataLine[i];
-		}
-		convert>>total_n_words;
-		convert.clear();
-		getline(reader, dataLine);
-		for(string::size_type i=0; i!=dataLine.size();++i){
-			if(isdigit(dataLine[i]))  convert<<dataLine[i];
-		}
-		convert>>dataDimension;
-		convert.clear();
-		ClusterCenters = cv::Mat (total_n_words,dataDimension,CV_32FC1);
-		cv::MatIterator_<float>   iter = ClusterCenters.begin<float>(),
-				iter_end=ClusterCenters.end<float>();
-		float vocValue=0;
-		unsigned line_counter=1;
-		while(getline(reader,dataLine)){
-			if(dataLine.size()>20){
-				stringstream convert;
-				convert<<dataLine<<flush;
-				while(convert>>vocValue) {
-					*iter=vocValue;
-					++iter;
-				}
-				convert.clear();
+	ifstream reader(tDictionary.c_str());
+	if(!reader){
+		throw runtime_error("Dictionary file not found");
+	}
+	string dataLine, temp;
+	stringstream convert;
+	int total_n_words;
+	getline(reader, dataLine);
+	convert<<dataLine;
+	convert>>temp>>FeatureDetectorType;
+	convert.clear();
+	getline(reader, dataLine);
+	convert<<dataLine;
+	convert>>temp>>DescriptorExtractorType;
+	convert.clear();
+	getline(reader, dataLine);
+	for(string::size_type i=0; i!=dataLine.size();++i){
+		if(isdigit(dataLine[i]))  convert<<dataLine[i];
+	}
+	convert>>total_n_words;
+	convert.clear();
+	getline(reader, dataLine);
+	for(string::size_type i=0; i!=dataLine.size();++i){
+		if(isdigit(dataLine[i]))  convert<<dataLine[i];
+	}
+	convert>>dataDimension;
+	convert.clear();
+	ClusterCenters = cv::Mat (total_n_words,dataDimension,CV_32FC1);
+	cv::MatIterator_<float>   iter = ClusterCenters.begin<float>(),
+			iter_end=ClusterCenters.end<float>();
+	float vocValue=0;
+	unsigned line_counter=1;
+	while(getline(reader,dataLine)){
+		if(dataLine.size()>20){
+			stringstream convert;
+			convert<<dataLine<<flush;
+			while(convert>>vocValue) {
+				*iter=vocValue;
+				++iter;
 			}
-			++line_counter;
+			convert.clear();
 		}
-		reader.close();
-		return ClusterCenters.rows;
+		++line_counter;
+	}
+	reader.close();
+	return ClusterCenters.rows;
 }
 
 vector<int> Vocabulary::getSowBowRepr_img( const cv::Mat &current_picture,const int &method,						// why do i need a method here??
@@ -604,17 +607,22 @@ vector<string> Vocabulary::listFilesInDirectory (const std::string &dir_path, co
 
 
 void Vocabulary::MatToFile(const string &doc_path, cv::Mat matrix) const{
+
 	matrix.convertTo(matrix,CV_32FC1);
+
 	cout<<"MatToFile printing started"<<endl;
 	ofstream print_to_file;
 	print_to_file.open(doc_path.c_str());
 	if (!print_to_file) {
 		cerr <<"error: unable to open output file: "<<doc_path<<endl;
 	}
+
 	print_to_file<<"N_ROWS: "<<matrix.rows<<endl;
 	print_to_file<<"N_COLS: "<<matrix.cols<<endl;
+
 	int new_line =1;
 	cv::MatConstIterator_<float> iter_mat = matrix.begin<float>(),iter_mat_fal=matrix.end<float>();
+
 	for (;iter_mat!=iter_mat_fal;++iter_mat){
 		print_to_file<<*iter_mat<<" "<<flush;
 		if (new_line%matrix.cols == 0) {
@@ -624,6 +632,7 @@ void Vocabulary::MatToFile(const string &doc_path, cv::Mat matrix) const{
 	}
 	matrix.release();
 	print_to_file.close();
+
 }
 
 vector<int> Vocabulary::getFlannSowBowVector(cv::flann::GenericIndex<cv::flann::L2<float> >  &flannIndex,
@@ -634,9 +643,9 @@ vector<int> Vocabulary::getFlannSowBowVector(cv::flann::GenericIndex<cv::flann::
 		cvflann::SearchParams params,
 		int sow_bow) const {
 	vector<int> sow_vector (ClusterCenters.rows,0);
-		flannIndex.knnSearch(descr_query, indices, dist, knn, params);
+	flannIndex.knnSearch(descr_query, indices, dist, knn, params);
 	cv::MatConstIterator_<int> labels_iter = indices.begin<int>(), labels_iter_fal = indices.end<int>();
-		vector<int>::iterator itr_vect = sow_vector.begin(), itr_vect_temp = sow_vector.end();
+	vector<int>::iterator itr_vect = sow_vector.begin(), itr_vect_temp = sow_vector.end();
 	for (; labels_iter!=labels_iter_fal;++labels_iter){
 		itr_vect_temp = itr_vect+ (*labels_iter);
 		if (itr_vect_temp < sow_vector.end()){
@@ -668,3 +677,29 @@ bool comparator (const pair<int,int> &l, const pair<int,int> &r){
 	return l.second > r.second;
 }
 
+void Vocabulary::saveVocab(cv::Mat newVocab, string dir){
+	if(newVocab.empty())
+		newVocab = ClusterCenters;
+	String vocabSavePath(dir);
+	ofstream print_to_file;
+	print_to_file.open(vocabSavePath.c_str());
+	if (!print_to_file) {
+		cerr <<"error: unable to open output file: "<<vocabSavePath<<endl;
+	}
+	print_to_file<<"DETECTOR_TYPE: "<<FeatureDetectorType<<endl;
+	print_to_file<<"DESCRIPTOR_TYPE: "<<DescriptorExtractorType<<endl;
+	print_to_file<<"WORDS: "<<newVocab.rows<<endl;
+	print_to_file<<"DESCRIPTOR_DIMENSION: "<<dataDimension<<endl;
+	print_to_file<<"WORD:0 "<<endl;
+	int new_line =0;
+	cv::MatConstIterator_<float> iter_mat = newVocab.begin<float>(),iter_mat_fal=newVocab.end<float>();
+	for (;iter_mat!=iter_mat_fal;++iter_mat){
+		if (new_line!=0 && new_line%newVocab.cols == 0) {
+			print_to_file<<"\n"<<flush;
+			print_to_file<<"WORD:"<<new_line/newVocab.cols<<endl;
+		}
+		print_to_file<<*iter_mat<<" "<<flush;
+		++new_line;
+	}
+	print_to_file.close();
+}
