@@ -32,9 +32,9 @@ bool LOADDB;
 using namespace boost::filesystem;
 using namespace cv;
 
-void odomProcessing(const sensor_msgs::Imu msg){
-	ROS_INFO("YEEEEE: %d",msg.header.stamp.sec);
-}
+//void odomProcessing(const sensor_msgs::Imu msg){
+//	ROS_INFO("YEEEEE: %d",msg.header.stamp.sec);
+//}
 
 
 void imageProcessing(const sensor_msgs::ImageConstPtr& msg, flann::GenericIndex<cv::flann::L2<float> > &flannIndObj){
@@ -239,7 +239,7 @@ int main(int argc, char **argv)
 
 	ros::NodeHandle n;
 	ros::Subscriber img_sub = n.subscribe<sensor_msgs::Image>("/images", 100, boost::bind(imageProcessing, _1, boost::ref(FlannObj)));
-	ros::Subscriber odom_sub = n.subscribe<sensor_msgs::Imu>("/odom", 100, odomProcessing);
+	//ros::Subscriber odom_sub = n.subscribe<sensor_msgs::Imu>("/odom", 100, odomProcessing);
 	img_pub = n.advertise<std_msgs::Int32MultiArray>("/loopClosures", 100);
 	ROS_INFO("LoopClosure node correctly created!");
 	ros::spin();
