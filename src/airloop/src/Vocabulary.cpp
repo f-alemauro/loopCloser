@@ -496,25 +496,25 @@ vector<int> Vocabulary::getSowBowRepr_img( const cv::Mat &current_picture,const 
 		}
 		cv::Ptr<cv::DescriptorExtractor> extractor = cv::DescriptorExtractor::create(DescriptorExtractorType);
 		grayscale = (DescriptorExtractorType=="SURF"||DescriptorExtractorType=="SURF128" || DescriptorExtractorType=="SIFT" ||  DescriptorExtractorType=="BRIEF"||  DescriptorExtractorType=="BRIEF64");
-		cout<<"describeImgFeatures started"<<endl;
+		//cout<<"describeImgFeatures started"<<endl;
 		if(!grayscale){
 			cv::cvtColor(current_picture, img_gray, CV_RGBA2BGR,3 );		//CV_RGBA2BGRA
 		}
 		if( (DescriptorExtractorType=="SURF" && dataDimension==128) || DescriptorExtractorType=="SURF128"){
 			curImgDescriptors = describeImgSurfFeatures(img_gray, curImgFeatures, 4,2,1);
-			cout<<"surf128: "<<curImgDescriptors.rows<<" "<<curImgDescriptors.cols<<endl;
+			//cout<<"surf128: "<<curImgDescriptors.rows<<" "<<curImgDescriptors.cols<<endl;
 		}
 		else if( DescriptorExtractorType=="SURF" ){
 			curImgDescriptors = describeImgSurfFeatures(img_gray, curImgFeatures, 4,2,0);
-			cout<<"surf: "<<curImgDescriptors.rows<<" "<<curImgDescriptors.cols<<endl;
+			//cout<<"surf: "<<curImgDescriptors.rows<<" "<<curImgDescriptors.cols<<endl;
 		}
 		else if( (DescriptorExtractorType=="BRIEF" && dataDimension==64) || DescriptorExtractorType=="BRIEF64"){
 			curImgDescriptors=describeImgBriefFeatures(img_gray, curImgFeatures, 64);
-			cout<<"brief64: "<<curImgDescriptors.rows<<" "<<curImgDescriptors.cols<<endl;
+			//cout<<"brief64: "<<curImgDescriptors.rows<<" "<<curImgDescriptors.cols<<endl;
 		}
 		else {
 			curImgDescriptors = describeImgFeatures (img_gray, curImgFeatures, extractor);
-			cout<<DescriptorExtractorType<<" "<<curImgDescriptors.rows<<" "<<curImgDescriptors.cols<<endl;
+			//cout<<DescriptorExtractorType<<" "<<curImgDescriptors.rows<<" "<<curImgDescriptors.cols<<endl;
 		}
 		img_gray.~Mat();
 		cv::Mat flann_labels_inner (curImgDescriptors.rows, flann_knn, CV_32SC1);		// <-- int
@@ -527,7 +527,7 @@ vector<int> Vocabulary::getSowBowRepr_img( const cv::Mat &current_picture,const 
 		flann_dist_inner.~Mat();
 		return bow_repres;
 	}
-	catch (runtime_error err){
+	catch (runtime_error& err){
 		vector<int> err_bow;
 		cout<<err.what()<<endl;
 		return err_bow;
@@ -566,15 +566,15 @@ inline string Vocabulary::generatePath(const string &inp_base, const size_t &num
 cv::Mat Vocabulary::describeImgFeatures (const cv::Mat &img_gray, vector<cv::KeyPoint> &key_points,	const cv::Ptr<cv::DescriptorExtractor> &descriptorExtractor) const {
 	cv::Mat descriptors;
 	descriptorExtractor->compute(img_gray,key_points,descriptors);
-	cout<<"describeImgFeatures: computed "<<descriptors.rows<<" descriptors"<<endl;
+	//cout<<"describeImgFeatures: computed "<<descriptors.rows<<" descriptors"<<endl;
 	return descriptors;
 }
 
 vector<cv::KeyPoint> Vocabulary::getImgFeatures(const cv::Mat &img_gray, const cv::Ptr<cv::FeatureDetector> &detector) const {
-	cout<<"getImgFeatures started"<<endl;
+	//cout<<"getImgFeatures started"<<endl;
 	vector<cv::KeyPoint> key_points;
 	detector->detect(img_gray,key_points);
-	cout<<"getImgFeatures: key_points extracted, found "<<key_points.size()<<" key points "<<endl;
+	//cout<<"getImgFeatures: key_points extracted, found "<<key_points.size()<<" key points "<<endl;
 	return key_points;
 }
 
@@ -610,14 +610,13 @@ void Vocabulary::MatToFile(const string &doc_path, cv::Mat matrix) const{
 
 	matrix.convertTo(matrix,CV_32FC1);
 
-	cout<<"MatToFile printing started"<<endl;
+	//cout<<"MatToFile printing started"<<endl;
 	ofstream print_to_file;
 	print_to_file.open(doc_path.c_str());
 	if (!print_to_file) {
 		cerr <<"error: unable to open output file: "<<doc_path<<endl;
 	}
 
-	print_to_file<<"N_ROWS: "<<matrix.rows<<endl;
 	print_to_file<<"N_COLS: "<<matrix.cols<<endl;
 
 	int new_line =1;

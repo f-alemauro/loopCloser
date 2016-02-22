@@ -8,53 +8,14 @@
 #include <fstream>
 #include <sstream>
 
-
 using namespace cv;
 using namespace boost::filesystem;
-
 
 vector<path> imageNames;
 vector<Mat> images;
 std::string dbdir, ext;
 
 bool cvShowManyImages(char const* title, vector<Mat> images);
-
-
-/*void imageProcessing(const sensor_msgs::ImageConstPtr& msg){
-	cv_bridge::CvImagePtr cv_ptr;
-	try
-	{
-		cv_ptr = cv_bridge::toCvCopy(msg);
-	}
-	catch (cv_bridge::Exception& e)
-	{
-		ROS_ERROR("Error in converting image to openCV format: %s",e.what());
-		return;
-
-	}
-	images.push_back(cv_ptr->image);
-	cvShowManyImages("Loop closure!", images);
-	images.clear();
-}*/
-
-
-/*int get_all(const path& root, const string& ext, vector<path>& ret)
-{
-	int count = 0;
-	if(!exists(root) || !is_directory(root) || is_empty(root))
-		return -1;
-	recursive_directory_iterator it(root);
-	recursive_directory_iterator endit;
-	while(it != endit)
-	{
-		if(is_regular_file(*it) && it->path().extension() == ext){
-			count++;
-			ret.push_back(it->path());
-		}
-		++it;
-	}
-	return count;
-}*/
 
 void loopProcessing(const std_msgs::Int32MultiArray::ConstPtr& imgs){
 	Mat img_current;
@@ -116,10 +77,8 @@ bool cvShowManyImages(char const* title, vector<Mat> images) {
 	return true;
 }
 
-
 int main(int argc, char **argv)
 {
-
 	if(argc != 3){
 		ROS_ERROR("Improper use of function parameters!");
 		ROS_ERROR("Usage: ./imageViewer DBdir fileExtension");
@@ -143,5 +102,3 @@ int main(int argc, char **argv)
 	ros::spin();
 	return 0;
 }
-
-
