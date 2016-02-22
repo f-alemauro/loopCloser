@@ -28,26 +28,46 @@ class Loop_Closer {
 public:
 	Loop_Closer(){};
 
-	void setupDbDirs(string dbDir){
+	void setupDbDirs(string dbDir, bool newDB){
 		outputFolder = dbDir;
-		im  = "img/";
-		imBow  = "imgBow/";
+		im = "img/";
+		imBow = "imgBow/";
 		imDescr ="imgDescr/";
 		imFeat = "imgFeat/";
 		imgFlannLab = "imgFlannLab/";
 		closureProbabFile ="closProbab.dat";
-		vector<std::string> dirs;
-		dirs.push_back(imBow);
-		dirs.push_back(imDescr);
-		dirs.push_back(imFeat);
-		dirs.push_back(imgFlannLab);
-		dirs.push_back(im);
-		generateFolders(dirs);
+		dataMapFile = "dataMap.dat";
+		closureFile = "closure.dat";
+		invIndFile = "invInd.dat";
+		if (newDB){
+			vector<std::string> dirs;
+			dirs.push_back(imBow);
+			dirs.push_back(imDescr);
+			dirs.push_back(imFeat);
+			dirs.push_back(imgFlannLab);
+			dirs.push_back(im);
+			generateFolders(dirs);
+		}
+		ifstream infile((outputFolder+dataMapFile).c_str());
+		if(!infile.good())
+		{
+			std::ofstream outFile((outputFolder+dataMapFile).c_str(),std::ios::out | std::ifstream::app);
+			outFile<<"ImNum  TimeStamp  Odometry"<<endl;
+			outFile.close();
 
+		}
+		ifstream infile1((outputFolder+closureFile).c_str());
+		if(!infile1.good())
+		{
+			std::ofstream outFile((outputFolder+closureFile).c_str(),std::ios::out | std::ifstream::app);
+			outFile<<"ImNum TimeStamp Odometry LCImNum TimeStamp Odometry LCProbab GeomProbab"<<endl;
+			outFile.close();
+
+		}
 	}
 
-	std::vector<std::vector<float> > calcProbabCamera(Vocabulary &VocabularyObject,flann::GenericIndex<flann::L2<float> >  &flannIndObj, const unsigned neighbour, const float lc_threshold, const unsigned subset_range, const float gmtr_threshold, Mat &image, unsigned int img_n, string ts) throw (runtime_error);
-	unsigned int readDB(string dir) throw (runtime_error);
+	std::vector<std::vector<float> > calcProbabCamera(Vocabulary &VocabularyObject,flann::GenericIndex<flann::L2<float> >  &flannIndObj, const unsigned neighbour, const float lc_threshold, const unsigned subset_range, const float gmtr_threshold, Mat &image, unsigned int img_n, string ts, string odom) throw (runtime_error);
+	unsigned int readDB() throw (runtime_error);
 
 private:
 	int get_all(boost::filesystem::path root, vector<boost::filesystem::path>& ret);
@@ -70,6 +90,7 @@ private:
 	std::vector<std::vector<cv::KeyPoint> > newKeyPointsByImage;
 	std::vector<cv::Mat> vwImgRepresByImage;
 	std::vector<std::vector<int> > bowImgRepresByImage;
+	std::map<int, std::pair<string,string> > dataMap;
 
 	void generateFolders (vector<std::string> dirs);
 
@@ -80,6 +101,9 @@ private:
 	std::string imFeat;
 	std::string imgFlannLab;
 	std::string closureProbabFile;
+	std::string dataMapFile;
+	std::string closureFile;
+	std::string invIndFile;
 };
 
 #endif /* LOOP_CLOSER_H_ */

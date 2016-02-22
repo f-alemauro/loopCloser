@@ -6,6 +6,8 @@
 #include "boost/filesystem.hpp"
 #include <boost/foreach.hpp>
 #include <fstream>
+#include <sstream>
+
 
 using namespace cv;
 using namespace boost::filesystem;
@@ -13,11 +15,12 @@ using namespace boost::filesystem;
 
 vector<path> imageNames;
 vector<Mat> images;
+std::string dbdir, ext;
 
 bool cvShowManyImages(char const* title, vector<Mat> images);
 
 
-void imageProcessing(const sensor_msgs::ImageConstPtr& msg){
+/*void imageProcessing(const sensor_msgs::ImageConstPtr& msg){
 	cv_bridge::CvImagePtr cv_ptr;
 	try
 	{
@@ -29,13 +32,13 @@ void imageProcessing(const sensor_msgs::ImageConstPtr& msg){
 		return;
 
 	}
-    images.push_back(cv_ptr->image);
+	images.push_back(cv_ptr->image);
 	cvShowManyImages("Loop closure!", images);
 	images.clear();
-}
+}*/
 
 
-int get_all(const path& root, const string& ext, vector<path>& ret)
+/*int get_all(const path& root, const string& ext, vector<path>& ret)
 {
 	int count = 0;
 	if(!exists(root) || !is_directory(root) || is_empty(root))
@@ -51,20 +54,21 @@ int get_all(const path& root, const string& ext, vector<path>& ret)
 		++it;
 	}
 	return count;
-}
+}*/
 
 void loopProcessing(const std_msgs::Int32MultiArray::ConstPtr& imgs){
 	Mat img_current;
-	for(std::vector<int>::const_iterator it = imgs->data.begin()+1; it != imgs->data.end(); ++it)
+	for(std::vector<int>::const_iterator it = imgs->data.begin(); it != imgs->data.end(); ++it)
 	{
-     string img_path = (*(imageNames.begin()+*(it))).string();
-
-        img_current = imread(img_path);
-        images.push_back(img_current);
+		std::stringstream temp;
+		temp<<dbdir<<*it<<ext;
+		img_current = imread(temp.str());
+		images.push_back(img_current);
 	}
-	ROS_INFO("A new loop closure has been detected!");
-	//cvShowManyImages("Loop closure!", images);
-	//images.clear();
+	if(images.size()>1)
+		ROS_INFO("A new loop closure has been detected!");
+	cvShowManyImages("Loop closure!", images);
+	images.clear();
 }
 
 bool cvShowManyImages(char const* title, vector<Mat> images) {
@@ -106,32 +110,27 @@ bool cvShowManyImages(char const* title, vector<Mat> images) {
 	namedWindow(title, 1);
 	imshow(title,DispImage);
 	if(images.size()==1)
-		waitKey(10);
+		waitKey(5);
 	else
 		waitKey(0);
-
 	return true;
 }
 
 
 int main(int argc, char **argv)
 {
+
 	if(argc != 3){
 		ROS_ERROR("Improper use of function parameters!");
-		ROS_ERROR("Usage: ./imageViewer directory fileExtension");
+		ROS_ERROR("Usage: ./imageViewer DBdir fileExtension");
 		return -1;
 	}
-	int result = get_all(argv[1], argv[2], imageNames);
-	if( result == -1){
-		ROS_ERROR("Non existing directory!");
+	dbdir = argv[1];
+	ext = argv[2];
+	if(!exists(dbdir) || !is_directory(dbdir)){
+		ROS_ERROR("Error in opening database");
 		return -1;
 	}
-	else if (result == 0){
-		ROS_ERROR("Empty directory!");
-		return -1;
-	}
-
-	sort(imageNames.begin(),imageNames.end());
 
 	std::ofstream myfile;
 	myfile.open("outData/param/imageViewer.txt");
@@ -140,10 +139,9 @@ int main(int argc, char **argv)
 
 	ros::init(argc, argv, "imageViewer");
 	ros::NodeHandle n;
-	ros::Subscriber img_sub = n.subscribe<sensor_msgs::Image>("/images", 100, imageProcessing);
 	ros::Subscriber loop_sub = n.subscribe<std_msgs::Int32MultiArray>("/loopClosures",100, loopProcessing);
 	ros::spin();
-  	return 0;
+	return 0;
 }
 
 

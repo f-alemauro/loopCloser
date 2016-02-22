@@ -30,16 +30,25 @@ int main(int argc, char **argv)
 	Publisher ts_pub = n.advertise<std_msgs::Time>("/timeStamp", 1);
 	if(ts_pub){
 		Rate loop_rate(loopRate);
+		while(ts_pub.getNumSubscribers()<1 && ok())
+			ROS_INFO("Waiting for subscribers...");
+
 		ROS_INFO("Starting to publish timestamp...");
 
-		while(ros::ok()){
+		while(ts_pub.getNumSubscribers()>0 && ros::ok()){
 			t.data = actualTime.now();
-			cout<<"new data gone"<<endl;
 			ts_pub.publish(t);
+			cout<<"new timestamp published"<<endl;
 			loop_rate.sleep();
 		}
-		ROS_ERROR("Error in ROS! Qutting!");
-		return -1;
+		if (ts_pub.getNumSubscribers()==0){
+			ROS_ERROR("No more subscriber! Quitting!");
+			return 0;
+		}
+		else if(!ok()){
+			ROS_ERROR("Error in ROS! Quitting!");
+			return -1;
+		}
 	}
 	else{
 		ROS_ERROR("Error in creating publisher!");

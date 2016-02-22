@@ -9,10 +9,10 @@
 #include <std_msgs/Int8.h>
 #include "sensor_msgs/Imu.h"
 
-const int defaultNolcWith = 50;
-const float defaultProbabThreshold = 0.3;
+const int defaultNolcWith = 50;//5;
+const float defaultProbabThreshold =0.3;//0
 const int defaultNumbNeigh = 5;
-const float defaultGeomThreshold = 0.4;
+const float defaultGeomThreshold =0.4;//0
 const bool defaultLoadDB = false;
 
 Vocabulary VocabSet;
@@ -27,14 +27,15 @@ int N_NEIGH;
 float GEOM_THRESH;
 int lc;
 bool LOADDB;
-
+stringstream odom;
 
 using namespace boost::filesystem;
 using namespace cv;
 
-//void odomProcessing(const sensor_msgs::Imu msg){
-//	ROS_INFO("YEEEEE: %d",msg.header.stamp.sec);
-//}
+void odomProcessing(const sensor_msgs::Imu msg){
+	odom.str("");
+	odom<<msg.linear_acceleration.x<<":"<<msg.linear_acceleration.y<<":"<<msg.linear_acceleration.z<<" ";
+}
 
 
 void imageProcessing(const sensor_msgs::ImageConstPtr& msg, flann::GenericIndex<cv::flann::L2<float> > &flannIndObj){
@@ -51,34 +52,39 @@ void imageProcessing(const sensor_msgs::ImageConstPtr& msg, flann::GenericIndex<
 		ROS_ERROR("Error in converting image to openCV format: %s",e.what());
 		return;
 	}
-
+	stringstream timeStamp;
 	int ts = (*msg).header.stamp.sec;
 	int nts = (*msg).header.stamp.nsec;
 	int ms = nts/1000000;
 	int sec = ts%60;
 	int min = (ts/60)%60;
 	int ora = (ts/3600)%24;
-	stringstream temp;
-	temp << ora << "_"<< min << "_"<< sec << "_"<< ms<<".ppm";
+	timeStamp << ora << "."<< min << "."<< sec << "."<< ms;
 
 	try{
-		lc = ClosureDetection.calcProbabCamera(VocabSet, flannIndObj, NOLC_WITH, PROBAB_THRESH, N_NEIGH, GEOM_THRESH, cv_ptr->image, img_n, temp.str().c_str());
+		lc = ClosureDetection.calcProbabCamera(VocabSet, flannIndObj, NOLC_WITH, PROBAB_THRESH, N_NEIGH, GEOM_THRESH, cv_ptr->image, img_n, timeStamp.str().c_str(), odom.str().c_str());
 	}
 	catch (runtime_error &e)
 	{
 		cout<<e.what()<<endl;
 	}
-	img_n++;
-	for(int i=0;i<lc.size();i++){
-		imgs.data.push_back(lc[i][0]);
-		imgs.data.push_back(lc[i][1]);
+	imgs.data.push_back(img_n);
+
+	if(lc.size()!=0 && ros::ok() && img_pub.getNumSubscribers()>0){
+		int n;
+		if (lc.size()<=6)
+			n = lc.size();
+		else
+			n = 6;
+		for(int i=0;i<n;i++)
+			imgs.data.push_back(lc[i][1]);
 	}
-	if(lc.size()!=0 && ros::ok() && img_pub.getNumSubscribers()>0)
-		img_pub.publish(imgs);
 	else if (img_pub.getNumSubscribers()==0)
 		ROS_ERROR("No active subscriber for loopClosing!");
 	else if(!ros::ok())
 		ROS_ERROR("Error in ROS");
+	img_pub.publish(imgs);
+		img_n++;
 }
 
 void printUsage(){
@@ -101,7 +107,7 @@ int main(int argc, char **argv)
 {
 	string dbAddress, newDbName;
 	int aFlag=0,bFlag=0,cFlag=0,dFlag=0,eFlag=0,fFlag=0,gFlag=0;
-
+	odom<<"0:0:0";
 	NOLC_WITH = defaultNolcWith;
 	PROBAB_THRESH = defaultProbabThreshold;
 	N_NEIGH = defaultNumbNeigh;
@@ -144,7 +150,13 @@ int main(int argc, char **argv)
 			bFlag =1;
 			break;
 		case 'c'://newDBName
-			newDbName = optarg;
+			if(!exists(optarg)){
+				newDbName = optarg;
+			}
+			else{
+				ROS_ERROR("DB already existing!");
+				return -1;
+			}
 			cFlag =1;
 			break;
 		case 'd'://numberOfSkippedFrame
@@ -212,8 +224,10 @@ int main(int argc, char **argv)
 
 	if(LOADDB){
 		ROS_INFO("Reading db...");
+		ClosureDetection.setupDbDirs(dbAddress, false);
 		try{
-			img_n = ClosureDetection.readDB(dbAddress);
+			img_n = ClosureDetection.readDB();
+			//img_n++;
 		}catch (runtime_error &e)
 		{
 			ROS_ERROR(e.what());
@@ -223,7 +237,7 @@ int main(int argc, char **argv)
 	}
 	else{
 		ROS_INFO("No previously db loaded, new db will be generated");
-		ClosureDetection.setupDbDirs(newDbName);
+		ClosureDetection.setupDbDirs(newDbName, true);
 	}
 
 
@@ -237,9 +251,11 @@ int main(int argc, char **argv)
 
 	ros::init(argc, argv, "loopClosure");
 
+
 	ros::NodeHandle n;
+	ros::Rate loop_rate(100);
+	ros::Subscriber odom_sub = n.subscribe<sensor_msgs::Imu>("/odom", 100, odomProcessing);
 	ros::Subscriber img_sub = n.subscribe<sensor_msgs::Image>("/images", 100, boost::bind(imageProcessing, _1, boost::ref(FlannObj)));
-	//ros::Subscriber odom_sub = n.subscribe<sensor_msgs::Imu>("/odom", 100, odomProcessing);
 	img_pub = n.advertise<std_msgs::Int32MultiArray>("/loopClosures", 100);
 	ROS_INFO("LoopClosure node correctly created!");
 	ros::spin();

@@ -12,7 +12,6 @@ float totalDistance=0;			//how far are new descriptors from visual words?
 
 bool pair_comparator (const pair<int,int> &l, const pair<int,int> &r);
 
-
 bool mysort (const path i, const path j);
 
 map<int,vector<int> > Loop_Closer::recalcNewInvIndex( vector<int>::iterator curImgBow_beg, vector<int>::iterator curImgBow_end, int img_number) const {
@@ -71,28 +70,39 @@ map<int,float> Loop_Closer::getSimilarityCoefficients ( vector<int>::const_itera
 		int img_n) const{
 	map<int,float> sim_cfs;
 	float sum_w = accumulate (itr_curImg_w_log,itr_curImg_w_log_fal,0);
-
 	for(int i=-1; i!=img_n;++i){
 		sim_cfs[i]-=sum_w;
 	}
+
 	int vw_number = 0;
 	for(;bow_iterat!=bow_iterat_fal;++bow_iterat){
-		if(*bow_iterat!=0){									// for each word found in the current image ....
+		if(*bow_iterat!=0){
 			map<int, vector<int> >::const_iterator map_it = newInvIndex.find(vw_number);	// find other documents with this vw
 			if(map_it!=newInvIndex.end()){
 				vector<int>::const_iterator ii_iter = map_it->second.begin(), ii_iter_fal = map_it->second.end();
 				for(;ii_iter!=ii_iter_fal;++ii_iter){										// for each image comprising this word
+					//	cout<<*ii_iter<<" ";
 					vector<float>::const_iterator grab_iter = itr_curImg_w_log + vw_number;
 					sim_cfs[*ii_iter] += 2*(*grab_iter);
+
 				}
+
 			}
 		}
 		++vw_number;
 	}
+
+	//for(map<int,float>::iterator it=sim_cfs.begin();it!= sim_cfs.end(); it++ )
+	//		cout<<it->first<<"   "<<it->second<<"  //  ";
+	//cout<<endl;
 	// to be turned on for avoiding closing the loop with neighbors
 	for(int i=0; i!=neighbor;++i){
+		//cout<<"ERASE"<<endl;
 		sim_cfs.erase(img_n - i);
 	}
+	//for(map<int,float>::iterator it=sim_cfs.begin();it!= sim_cfs.end(); it++ )
+	//		cout<<it->first<<"   "<<it->second<<"  //  ";
+	//	cout<<endl;
 	return sim_cfs;
 }
 
@@ -196,10 +206,13 @@ bool mysort (const path i, const path j) {
 }
 
 
-std::vector<std::vector<float> >Loop_Closer::calcProbabCamera(Vocabulary &VocabularyObject, flann::GenericIndex<cv::flann::L2<float> >  &flannIndObj, const unsigned neighbor, const float lc_threshold,const unsigned subset_range,const float gmtr_threshold, Mat &img_current, unsigned int img_n, string ts) throw (runtime_error){
+std::vector<std::vector<float> >Loop_Closer::calcProbabCamera(Vocabulary &VocabularyObject, flann::GenericIndex<cv::flann::L2<float> >  &flannIndObj, const unsigned neighbor, const float lc_threshold,const unsigned subset_range,const float gmtr_threshold, Mat &img_current, unsigned int img_n, string ts, string odom) throw (runtime_error){
+
 	detectedLoopClosures.clear();
 	cout<<"Processing image number "<<img_n<<endl;
-	imwrite(outputFolder+im+ts+".ppm", img_current);
+	stringstream ss;
+	ss << img_n<<".ppm";  // int value
+	imwrite((outputFolder+im+ss.str()).c_str(), img_current);
 	Mat curImgFlannLabels, curImgFlannDist, curImgDescriptors;
 	vector<KeyPoint> curImgFeatures;
 
@@ -214,10 +227,17 @@ std::vector<std::vector<float> >Loop_Closer::calcProbabCamera(Vocabulary &Vocabu
 	vwImgRepresByImage.push_back(curImgFlannLabels);// vector of visual words each image consists of
 	newKeyPointsByImage.push_back(curImgFeatures);//
 	newDescriptorsByImage.push_back(curImgDescriptors);//
+	std::pair <string,string> temp (ts,odom);
+	dataMap[img_n] = temp;
 	totalNumbDescr+=curImgFeatures.size();
 
 	stringstream tempDir;
 	tempDir<<img_n<<".dat";
+
+	std::ofstream outFile_2((outputFolder+dataMapFile).c_str(),std::ios::out | std::ifstream::app);
+	outFile_2<<img_n<<"    "<<ts<<"    "<<odom<<endl;
+	outFile_2.close();
+
 	VocabularyObject.MatToFile(outputFolder+imDescr+tempDir.str(),curImgDescriptors);
 	VocabularyObject.MatToFile(outputFolder+imgFlannLab+tempDir.str(),curImgFlannLabels);
 	std::ofstream outFile((outputFolder+imBow+tempDir.str()).c_str(), std::ios::out | std::ifstream::binary);
@@ -257,6 +277,7 @@ std::vector<std::vector<float> >Loop_Closer::calcProbabCamera(Vocabulary &Vocabu
 	pair<int, vector<float> > tfIdfByImage_pair;
 
 	vector<float> curImg_w_log = calcImg_tfIdf(curImg_bow.begin(), curImg_bow.end(), curImgFeatures.size());
+
 	if (curImg_w_log.size()==0){
 		throw runtime_error ("Error occurred while forming curImg_w_log");
 	}
@@ -294,13 +315,17 @@ std::vector<std::vector<float> >Loop_Closer::calcProbabCamera(Vocabulary &Vocabu
 
 
 		//******** calc. similarity map ******************************
-		cout<<"Starting similarity map computation..."<<endl;
+		/*for(std::map<int, std::vector<int> >::iterator it = newInvIndex.begin();it!= newInvIndex.end();it++){
+			cout<<it->first<<": ";
+			for (int i =0;i< it->second.size();i++)
+				cout<<it->second[i]<< " ";
+			cout<<endl;
+		}*/
+
+
 		map<int,float> sim_cfs = getSimilarityCoefficients(curImg_bow.begin(),curImg_bow.end(), curImg_w_log.begin(), curImg_w_log.end(), neighbor, img_n );
 		map<int,float> likelihood = getLikelihoodCoef(sim_cfs.begin(), sim_cfs.end());
-
 		lc_probability.push_back(likelihood);
-		cout<<"lc_probab size: "<<lc_probability.size()<<endl;
-
 		int fal_not_neighbor = img_n-neighbor;
 		if (fal_not_neighbor==1){
 			vector<float> probability(1,1);
@@ -319,6 +344,9 @@ std::vector<std::vector<float> >Loop_Closer::calcProbabCamera(Vocabulary &Vocabu
 
 			if (to_pos==-1){
 				p_lclosing_with_to_pos=0.9*closureProbab[img_n-1].at(to_pos+1) + 0.1*(1-closureProbab[img_n-1].at(to_pos+1));
+				//cout<<"-1: "<<p_lclosing_with_to_pos<<endl;
+				//cout<<"-1 cpat: "<<closureProbab[img_n-1].at(to_pos+1)<<endl;
+				//		pause();
 			}
 			else {
 
@@ -332,11 +360,11 @@ std::vector<std::vector<float> >Loop_Closer::calcProbabCamera(Vocabulary &Vocabu
 
 					float p_being_in_from_pos = closureProbab[img_n-1].at(from_pos+1);
 					p_lclosing_with_to_pos+= p_being_in_from_pos * trans;
+					//cout<<"elseInFor: "<<p_lclosing_with_to_pos<<endl;
 				}
 				p_lclosing_with_to_pos+=(0.1/(img_n-neighbor))*closureProbab[img_n-1].at(0);
-
+				//cout<<"elseOutFor: "<<p_lclosing_with_to_pos<<endl;
 			}
-
 
 			float fp_cur_pos  = p_lclosing_with_to_pos * likelihood[to_pos+1];
 			curImg_pos_probab.push_back(fp_cur_pos);
@@ -370,9 +398,9 @@ std::vector<std::vector<float> >Loop_Closer::calcProbabCamera(Vocabulary &Vocabu
 				if (sum>=lc_threshold){
 					pair<int,float> matchProbab;
 					int simImg = position_number - subset.size()/2+1;        // some trouble is possible in the very beginning
-					cout<<"Threshold requirements met by image "<<simImg<<endl;
+					//cout<<"Threshold requirements met by image "<<simImg<<endl;
 					matchProbab=make_pair(simImg, sum);
-					cout<<"Putting pair in the list ... "<<endl;
+					//cout<<"Putting pair in the list ... "<<endl;
 					probableClosureCandidates.push_back(matchProbab);
 				}
 			}
@@ -382,8 +410,7 @@ std::vector<std::vector<float> >Loop_Closer::calcProbabCamera(Vocabulary &Vocabu
 
 
 		closureProbabSubset.insert(make_pair(img_n, subset_sums));
-		cout<<"+++omg: "<<omg<<endl;
-		cout<<"lc detected: "<<detectedLoopClosures.size()<<endl;
+		//cout<<"lc detected: "<<detectedLoopClosures.size()<<endl;
 		if(probableClosureCandidates.size()!=0){
 
 			string matcherType("FlannBased");
@@ -391,20 +418,17 @@ std::vector<std::vector<float> >Loop_Closer::calcProbabCamera(Vocabulary &Vocabu
 			descriptorMatcher = DescriptorMatcher::create( matcherType );
 			cout<<"  descriptor matcher was created with type "<<matcherType<<endl;
 			Mat trainDescriptors = newDescriptorsByImage.at(img_n);
-			cout<<"OOOOOOOOK"<<endl;
 			vector<Mat> bzzz;
 			bzzz.push_back(trainDescriptors);
 			descriptorMatcher->add( bzzz );
-			cout<<"Descriptor matcher was given image "<<img_n<<endl;
+			//cout<<"Descriptor matcher was given image "<<img_n<<endl;
 			vector<pair<int,float> >::const_iterator candidate_it = probableClosureCandidates.begin(), candidate_it_fal = probableClosureCandidates.end();
-			cout<<"QUI!"<<endl;
 			for(;candidate_it!=candidate_it_fal;++candidate_it){
 				vector<float> cur_closure;
 				Mat queryDescriptors = newDescriptorsByImage.at(candidate_it->first);
 				vector<DMatch> indices;
-
 				descriptorMatcher->match( queryDescriptors, indices );
-				cout<<"  matching done for possible candidate "<<candidate_it->first<<endl;
+				//cout<<"  matching done for possible candidate "<<candidate_it->first<<endl;
 				//++++++++++finding out which points match properly+++++++++++++++++++++
 				vector<DMatch>::const_iterator 	ind_iter = indices.begin(),
 						ind_iter_fal = indices.end();
@@ -458,13 +482,16 @@ std::vector<std::vector<float> >Loop_Closer::calcProbabCamera(Vocabulary &Vocabu
 					ratio = static_cast<float>(calc_nonzero)/ static_cast<float>(compatPoints.size());
 				}
 				if (ratio>=gmtr_threshold) {
-
 					cur_closure.push_back(static_cast<float>(img_n));
 					cur_closure.push_back(static_cast<float>(candidate_it->first));
 					cur_closure.push_back(candidate_it->second);
 					cur_closure.push_back(ratio);
 					detectedLoopClosures.push_back(cur_closure);
-
+					/*for(int i =0;i<detectedLoopClosures.size();i++){
+						for(int j =0;j<detectedLoopClosures[i].size();j++)
+							cout<<detectedLoopClosures[i][j]<<endl;
+					}
+					cout<<"**************************"<<endl;*/
 				}
 				//************************************************************************************
 				pair<int, vector<float> > fp_pair;
@@ -496,6 +523,24 @@ std::vector<std::vector<float> >Loop_Closer::calcProbabCamera(Vocabulary &Vocabu
 			outFile.close();
 		}
 	}
+
+
+	//Writing output
+	std::ofstream outFileClosure((outputFolder+closureFile).c_str(), std::ios::out | std::ifstream::app);
+	for(int i =0;i<detectedLoopClosures.size();i++){
+		std::pair<string, string> first = dataMap[detectedLoopClosures[i][0]];
+		std::pair<string, string> second = dataMap[detectedLoopClosures[i][1]];
+		outFileClosure<< detectedLoopClosures[i][0]<<"    "<<first.first <<"    "<< first.second <<"    "<< detectedLoopClosures[i][1]<<"    "<<second.first << "    " <<second.second <<"    " <<detectedLoopClosures[i][2]<<"    "<<detectedLoopClosures[i][3];
+		outFileClosure<<endl;
+	}
+
+	std::ofstream outFileInvInd((outputFolder+invIndFile).c_str() ,std::ios::out | std::ifstream::out);
+	for(std::map<int, std::vector<int> >::iterator it = newInvIndex.begin();it!=newInvIndex.end();it++){
+		outFileInvInd<<it->first<<" ";
+		for(int i=0;i<it->second.size();i++)
+			outFileInvInd<<it->second[i]<<" ";
+		outFileInvInd<<endl;
+	}
 	return detectedLoopClosures;
 }
 
@@ -511,7 +556,7 @@ void Loop_Closer::generateFolders(vector<std::string> dirs){
 
 }
 
-unsigned int Loop_Closer::readDB(string dir) throw (runtime_error) {
+unsigned int Loop_Closer::readDB() throw (runtime_error) {
 	vector<path> fileNames;
 	int val;
 	float x,y, floatVal;
@@ -520,9 +565,6 @@ unsigned int Loop_Closer::readDB(string dir) throw (runtime_error) {
 	std::vector<int> line;
 	KeyPoint tKey;
 	std::vector<KeyPoint> tVector;
-
-
-	//cout<<"Reading img_bow"<<endl;
 	get_all(outputFolder+imBow, fileNames);
 	sort(fileNames.begin(),fileNames.end(), mysort);
 	for (vector<path>::const_iterator it (fileNames.begin()); it != fileNames.end(); ++it){
@@ -597,6 +639,7 @@ unsigned int Loop_Closer::readDB(string dir) throw (runtime_error) {
 	fileNames.clear();
 
 	//cout<<"Reading curImgFeatures"<<endl;
+
 	get_all(outputFolder+imFeat, fileNames);
 	sort(fileNames.begin(),fileNames.end(), mysort);
 	for (vector<path>::const_iterator it (fileNames.begin()); it != fileNames.end(); ++it){
@@ -612,21 +655,21 @@ unsigned int Loop_Closer::readDB(string dir) throw (runtime_error) {
 		}
 		else
 			throw runtime_error("Error in reading img feature file from db!");
-			//cout<<"error"<<endl;
+		//cout<<"error"<<endl;
 	}
 	//cout<<"Read "<<newKeyPointsByImage.size()<<"files."<<endl;
 
 	fileNames.clear();
 
 	//cout<<"Reading closureProbab"<<endl;
-	ifstream myfile((outputFolder+closureProbabFile).c_str());
-	if (myfile){
+	ifstream myfile_1((outputFolder+closureProbabFile).c_str());
+	if (myfile_1){
 		pair<int, vector<float> > fp_pair;
 		float tValue;
 		std::vector<float> row;
 		std::string lineData;
 		int imgN;
-		while(getline(myfile, lineData))
+		while(getline(myfile_1, lineData))
 		{
 			std::stringstream lineStream(lineData);
 			lineStream >> imgN;
@@ -638,11 +681,55 @@ unsigned int Loop_Closer::readDB(string dir) throw (runtime_error) {
 		}
 
 	}else
-		throw runtime_error("Error in reading closure probab. file from db!");
-		//cout<<"error"<<endl;
+		cout<<"Non existing closure probab. file!"<<endl;
+	//cout<<"error"<<endl;
 
 	//cout<<"Read "<< closureProbab.size()<<endl;
+	ifstream myfile_2((outputFolder+dataMapFile).c_str());
+	if (myfile_2){
+		std::string lineData, ts, odom;
+		int imgN;
+		getline(myfile_2, lineData);//column names
+		while(getline(myfile_2, lineData))
+		{
+			std::stringstream lineStream(lineData);
+			lineStream >> imgN;
+			lineStream >> ts;
+			lineStream >> odom;
+			std::pair <string,string> temp (ts,odom);
+			dataMap[imgN] = temp;
+			//cout<< imgN<<" - "<<ts<<" - "<<odom<<endl;
+		}
+	}else
+		throw runtime_error("Error in reading dataMap file from db!");
 
+	//std::map<int, std::vector<int> > newInvIndex;
+	ifstream myfileInvInd((outputFolder+invIndFile).c_str());
+	if (myfileInvInd){
+		int imgN,tempN;
+		std::vector<int> line;
+		std::string lineData;
+		while(getline(myfileInvInd, lineData))
+		{
+			line.clear();
+			std::stringstream lineStream(lineData);
+			lineStream >> imgN;
+			cout<<imgN<<": ";
+			while(lineStream>>tempN){
+				line.push_back(tempN);
+
+			}
+
+			newInvIndex[imgN] = line;
+		}
+		for(std::map<int, std::vector<int> >::iterator it = newInvIndex.begin();it!= newInvIndex.end();it++){
+			cout<<it->first<<": ";
+			for(int i =0;i<it->second.size();i++)
+				cout<<it->second[i]<<" ";
+			cout<<endl;
+		}
+	}else
+		throw runtime_error("Error in reading invIndex file from db!");
 	return bowImgRepresByImage.size();
 }
 

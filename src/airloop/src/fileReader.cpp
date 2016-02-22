@@ -32,6 +32,7 @@ int get_all(const path& root, const string& ext, vector<path>& ret)
 }
 
 void newTs(const std_msgs::Time time){
+	ROS_INFO("new ts read");
 	ts = time.data;
 }
 
@@ -42,8 +43,6 @@ int main(int argc, char **argv)
 	vector<path>::const_iterator iter;
 	cv_bridge::CvImage cv_image;
 	sensor_msgs::Image ros_image;
-
-
 	if(argc < 2){
 		ROS_ERROR("No path specified! Correct usage is ./fileReader directory fileExtension");
 		return -1;
@@ -83,19 +82,19 @@ int main(int argc, char **argv)
 			return -1;
 		}
 		sort(imageNames.begin(),imageNames.end());
-
 		while(img_pub.getNumSubscribers()<1 && ok())
 			ROS_INFO("Waiting for subscribers...");
 
 		for(iter = imageNames.begin(); iter!= imageNames.end()&& ok() && img_pub.getNumSubscribers()>0;++iter){
-			cout<< iter->generic_string()<<endl;
+			spinOnce();
+			loop_rate.sleep();
+			ROS_INFO(iter->generic_string().c_str());
 			cv_image.image = imread(iter->generic_string(),CV_LOAD_IMAGE_COLOR);
 			cv_image.encoding = "bgr8";
 			cv_image.toImageMsg(ros_image);
 			ros_image.header.stamp = ts;
 			img_pub.publish(ros_image);
-			spinOnce();
-			loop_rate.sleep();
+
 		}
 		if (img_pub.getNumSubscribers()==0){
 			ROS_ERROR("No more subscriber! Quitting!");

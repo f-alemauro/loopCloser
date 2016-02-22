@@ -10,17 +10,14 @@ using namespace ros;
 ros::Time ts;
 
 void newTs(const std_msgs::Time time){
-	cout<<"newTS"<<endl;
 	ts = time.data;
 }
 
 int main(int argc, char **argv)
 {
-
 	srand (time(NULL));
 	int loopRate=10;
 	sensor_msgs::Imu data;
-
 	ofstream myfile;
 	myfile.open ("outData/param/odometry.txt",std::ofstream::app);
 	for (int i = 0; i< argc;i++)
@@ -38,19 +35,14 @@ int main(int argc, char **argv)
 			ROS_INFO("Waiting for subscribers...");
 
 		while(odom_pub.getNumSubscribers()>0 && ok()){
-
 			int dummyOdom = rand() % 125 + 1;
-
-
 			geometry_msgs::Vector3 newOmega;
 			newOmega.x = dummyOdom;
 			newOmega.y = dummyOdom;
 			newOmega.z = dummyOdom;
-
 			data.linear_acceleration = newOmega;
 			data.header.stamp = ts;
 			ROS_INFO("ODOMETRY DATA: %d-%d-%d",(int)data.linear_acceleration.x,(int)data.linear_acceleration.y,(int)data.linear_acceleration.z);
-
 			odom_pub.publish(data);
 			spinOnce();
 			loop_rate.sleep();
