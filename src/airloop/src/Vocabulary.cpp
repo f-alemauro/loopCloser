@@ -616,7 +616,7 @@ void Vocabulary::MatToFile(const string &doc_path, cv::Mat matrix) const{
 	if (!print_to_file) {
 		cerr <<"error: unable to open output file: "<<doc_path<<endl;
 	}
-
+	print_to_file<<"N_ROWS: "<<matrix.rows<<endl;
 	print_to_file<<"N_COLS: "<<matrix.cols<<endl;
 
 	int new_line =1;

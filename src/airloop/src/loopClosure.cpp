@@ -84,8 +84,6 @@ void imageProcessing(const sensor_msgs::ImageConstPtr& msg, flann::GenericIndex<
 			infoString<<lc[i][1]<<", ";
 		}
 		ROS_INFO(infoString.str().c_str());
-
-
 	}
 	else if (img_pub.getNumSubscribers()==0)
 		ROS_ERROR("No active subscriber for loopClosing!");

@@ -215,6 +215,12 @@ std::vector<std::vector<float> >Loop_Closer::calcProbabCamera(Vocabulary &Vocabu
 	dataMap[img_n] = tempDM;
 	totalNumbDescr+=curImgFeatures.size();
 
+
+	//stringstream tempDir;
+	//	tempDir<<img_n<<".dat";
+	//	VocabularyObject.MatToFile(outputFolder+imDescr+tempDir.str(),curImgDescriptors);
+	//	VocabularyObject.MatToFile(outputFolder+imgFlannLab+tempDir.str(),curImgFlannLabels);
+
 //	cout<<"Starting new Inverted Index Computing..."<<endl;
 	//-----------recompute inverted index------------------
 	vector<int>::iterator itr_sow = curImg_bow.begin(), itr_sow_fal = curImg_bow.end();
@@ -232,7 +238,7 @@ std::vector<std::vector<float> >Loop_Closer::calcProbabCamera(Vocabulary &Vocabu
 
 
 	//cout<<"Starting tf-idf weight computation..."<<endl;
-	idf = calcIdfIset(curImg_bow.begin(), curImg_bow.size()); //COSA SERVE????
+	idf = calcIdfIset(curImg_bow.begin(), curImg_bow.size());
 	pair<int, vector<float> > tfIdfByImage_pair;
 
 	vector<float> curImg_w_log = calcImg_tfIdf(curImg_bow.begin(), curImg_bow.end(), curImgFeatures.size());
@@ -649,21 +655,18 @@ unsigned int Loop_Closer::readDB() throw (runtime_error) {
 
 	ifstream myfileInvInd((outputFolder+invIndFile).c_str());
 	if (myfileInvInd){
-		int imgN,tempN;
+		int featN,tempN;
 		std::vector<int> line;
 		std::string lineData;
 		while(getline(myfileInvInd, lineData))
 		{
 			line.clear();
 			std::stringstream lineStream(lineData);
-			lineStream >> imgN;
-			cout<<imgN<<": ";
+			lineStream >> featN;
 			while(lineStream>>tempN){
 				line.push_back(tempN);
-
 			}
-
-			newInvIndex[imgN] = line;
+			newInvIndex[featN] = line;
 		}
 	}else
 		throw runtime_error("Error in reading invIndex file from db!");
