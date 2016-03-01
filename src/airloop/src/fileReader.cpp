@@ -44,11 +44,11 @@ int main(int argc, char **argv)
 	cv_bridge::CvImage cv_image;
 	sensor_msgs::Image ros_image;
 	if(argc < 2){
-		ROS_ERROR("No path specified! Correct usage is ./fileReader directory fileExtension");
+		ROS_ERROR("No path specified! Correct usage is ./fileReader directory fileExtension loopRate");
 		return -1;
 	}
 	if(argc < 3){
-		ROS_ERROR("No extension specified! Correct usage is ./fileReader directory fileExtension");
+		ROS_ERROR("No extension specified! Correct usage is ./fileReader directory fileExtension loopRate");
 		return -1;
 	}
 	if(argc < 4){
