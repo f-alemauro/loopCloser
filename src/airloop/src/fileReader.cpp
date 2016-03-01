@@ -69,7 +69,7 @@ int main(int argc, char **argv)
 	ros::init(argc, argv, "fileReader");
 	NodeHandle n;
 	Publisher img_pub = n.advertise<sensor_msgs::Image>("/images", 100);
-	Subscriber ts_sub = n.subscribe<std_msgs::Time>("timeStamp", 1, newTs);
+	Subscriber ts_sub = n.subscribe<std_msgs::Time>("/timeStamp", 1, newTs);
 	if(img_pub){
 		Rate loop_rate(loopRate);
 		int result = get_all(argv[1], argv[2], imageNames);
